@@ -1,0 +1,131 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%------------------------------------------------------------
+%
+\documentclass[letterpaper,twoside,11pt,fleqn]{article}
+%Options -- Point size:  10pt (default), 11pt, 12pt
+%        -- Paper size:  letterpaper (default), a4paper, a5paper, b5paper
+%                        legalpaper, executivepaper
+%        -- Orientation  (portrait is the default)
+%                        landscape
+%        -- Print size:  oneside (default), twoside
+%        -- Quality      final(default), draft
+%        -- Title page   notitlepage, titlepage(default)
+%        -- Columns      onecolumn(default), twocolumn
+%        -- Equation numbering (equation numbers on the right is the default)
+%                        leqno
+%        -- Displayed equations (centered is the default)
+%                        fleqn (equations start at the same distance from the right side)
+%        -- Open bibliography style (closed is the default)
+%                        openbib
+% For instance the command
+%           \documentclass[a4paper,12pt,leqno]{article}
+% ensures that the paper size is a4, the fonts are typeset at the size 12p
+% and the equation numbers are on the left side
+%
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{hyperref}
+
+\oddsidemargin=0.3in
+\evensidemargin=0.3in
+\textwidth=6.0in
+
+\begin{document}
+
+%% Title Page %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\title{Math 16:642:623 \\Computational Finance \\ Homework 4}
+\author{NITISH KANABAR \\ \texttt{nitish@eden.rutgers.edu}}
+%\date{}%
+
+\maketitle
+
+\thispagestyle{empty} 
+
+\clearpage
+\vfill
+\pagebreak
+
+%\cleardoublepage
+
+%\pagestyle{plain} 
+\setcounter{page}{1}
+
+%% Start Report %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+The program calculates the price of a European-call option with strike K = 110 and maturity T = 1 year on an asset with initial price S(0) = 100, \(\sigma = 30\%\), and interest-rate = 5\% using the methods specified in the assignment. \\
+
+I developed and tested my code on Mac OS X using GCC Version 4.2.1.
+
+\section*{Algorithms}
+
+\subsubsection*{Sobol Sequence Generator}
+My Sobol sequence generator is based on code adapted from S. Joe and F. Y. Kuo which is located here: http://web.maths.unsw.edu.au/\textasciitilde{}fkuo/sobol/
+
+A Sobol sequence is a type of \( (t, d) \)-sequence in the class of low-discrepancy sequences.  The generator is implemented in the files Sobol.\{cpp.h\}.  The algorithm of generating Sobol sequences is as described in Notes on generating Sobol` sequences, \cite{joe_kuo}.  We begin with a set of primitive polynomials and direction numbers for dimensions 1 through 12 as defined by Joe and Kuo. The Sobol class encapsulates these numbers in the data-members {\em a} and {\em m}.  The Sobol class is limited to generating Sobol sequences upto dimension=12.  The Sobol constructor accepts two arguments - dimensionality and the dimension. The dimensionality indicates the total number of points that are required to be generated while the dimension refers to the number of points in each set. Hence the number of sets is dimensionality / dimension.   The GetUniforms method generates sequences of uniforms while the GetGaussian method converts these uniforms into a guassian sequence by the InverseTransform method.
+
+\subsubsection*{Park-Miller Generator}
+The Park-Miller generator is the standard Linear Congruential Generator using the following algorithm.
+\[
+x_{i+1} = a x_i mod m
+\]
+\[ x_0 = seed \]
+\[ m = 2^{31} - 1, a = 16807 \]
+\[
+u_{i+1} = \frac{x_{i+1}}{m}
+\]
+I have used the Park-Miller generator implemented by Mark Joshi.
+
+\subsubsection*{Generating Gaussians with Sobol Sequences}
+The Marsaglia-Bray method uses acceptance-rejection to transform points sampled in the unit disc to normal variables.  There is no upper bound on the number of uniforms the algorithm may use to generate a single normal variable.  Since the Sobol sequences are non-random, the Marsaglia-Bray method will consistently reject specific sets of the Sobol sequence and may cause an unacceptable number of rejections resulting in a degradation of the the order of convergence. This makes the method unsuitable for obtaining normal variables from Sobol uniforms (\cite{glasserman}).
+Hence the Inverse Transform method is more suitable for generating normal variables from Sobol sequences.
+
+
+\section*{Plots}
+
+\begin{figure}[htbp]
+\begin{center}
+\includegraphics[scale=1]{"/Users/nitish/MSMF/CompFin/DesignCPP/HW4_KANABARN/plot_sobol"}
+\caption{{\bf Pairs from a 2-D Sobol Sequence generator}}
+\label{plot_sobol}
+\end{center}
+\end{figure}
+
+\begin{figure}[htbp]
+\begin{center}
+\includegraphics[scale=1]{"/Users/nitish/MSMF/CompFin/DesignCPP/HW4_KANABARN/plot_pm"}
+\caption{{\bf Pairs from a Park-Miller uniform random number generator}}
+\label{plot_pm}
+\end{center}
+\end{figure}
+
+Figure \ref{plot_sobol} shows 1024 pairs of 2-D Sobol sequences generated using Joe and Kuo's algorithm as adapted in my code. The regularity of the pattern is a clear indication of the non-randomness of the Sobol sequence.  We observe that the pairs seem to be uniformly distributed within the unit square.
+
+Figure \ref{plot_pm} shows 1024 pairs of Park-Miller uniforms. The pairs are random in nature and seem to be uniformly distributed within the unit square.
+
+\clearpage
+
+\section*{Results}
+
+\begin{verbatim}
+Closed-form vanilla call option price = 10.0201
+MC vanilla call option price with Park-Miller uniforms = 10.2803
+MC vanilla call option price with Park-Miller uniforms and antithetics = 9.97739
+QMC vanilla call price with Sobol sequence = 9.92965
+\end{verbatim}
+
+
+\begin{thebibliography}{1}
+\bibitem{joe_kuo}
+	Stephen Joe and Frances Y. Kuo:
+	{\em Notes on generating Sobol' sequences}
+
+\bibitem{glasserman}
+	Glasserman, Paul:
+	{\em Monte Carlo Methods in Financial Engineering}
+
+\end{thebibliography}
+
+\end{document}

@@ -1,0 +1,153 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%------------------------------------------------------------
+%
+\documentclass[letterpaper,twoside,11pt,fleqn]{article}
+%Options -- Point size:  10pt (default), 11pt, 12pt
+%        -- Paper size:  letterpaper (default), a4paper, a5paper, b5paper
+%                        legalpaper, executivepaper
+%        -- Orientation  (portrait is the default)
+%                        landscape
+%        -- Print size:  oneside (default), twoside
+%        -- Quality      final(default), draft
+%        -- Title page   notitlepage, titlepage(default)
+%        -- Columns      onecolumn(default), twocolumn
+%        -- Equation numbering (equation numbers on the right is the default)
+%                        leqno
+%        -- Displayed equations (centered is the default)
+%                        fleqn (equations start at the same distance from the right side)
+%        -- Open bibliography style (closed is the default)
+%                        openbib
+% For instance the command
+%           \documentclass[a4paper,12pt,leqno]{article}
+% ensures that the paper size is a4, the fonts are typeset at the size 12p
+% and the equation numbers are on the left side
+%
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{graphicx}
+
+\oddsidemargin=0.3in
+\evensidemargin=0.3in
+\textwidth=5.8in
+
+\begin{document}
+
+%% Title Page %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\title{Math 16:642:623 \\Computational Finance \\ Homework 3}
+\author{NITISH KANABAR \\ \texttt{nitish@eden.rutgers.edu}}
+%\date{}%
+
+\maketitle
+
+\thispagestyle{empty} 
+
+\clearpage
+\vfill
+\pagebreak
+
+%\cleardoublepage
+
+%\pagestyle{plain} 
+\setcounter{page}{1}
+
+%% Start Report %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section*{Building and Running the Homework}
+
+The file HW3\_KANABARN.zip contains the implementation of the random number generators. As specified in the program submission section I am including only files that I have modified or coded.  I am assuming that the rest of Joshi's code is available from the directory containing RandomMain3.cpp.  Please note that my Makefile assumes that Joshi's cpp files are available in ../source and Joshi's header files are available in ../include relative to the directory containing RandomMain3.cpp. \\
+
+
+Unzip the submitted file. This will create a directory called HW3\_KANABARN which contains my code.  Change to that directory and run 'make' to build the homework.  This will build the executable 'hw3'.  Running 'hw3' will calculate the current price of an European-call option with strike K = 110 and maturity T = 1 year on an asset with initial price S(0) = 100, \(\sigma = 30\%\), and interest-rate = 5\%. \\
+
+I developed and tested my code on Mac OS X using GCC Version 4.2.1.
+
+
+\section*{Algorithms}
+The various schemes for generating random numbers are implemented as described below:
+
+\subsection*{L'Ecuyer - Uniform Random Numbers}
+The LEcuyer generator is driven by two Multiple Recursive Generator objects.  The algorithm is as described in the homework notes.
+The multiple-recursive-generator is implemented as a class. Each mrg object is initialized using three seeds, three multipliers, and one modulus value. The LEcuyer class inherits from the RandomRand class. This allows us to reuse the existing code and use polymorphism to fit the LEcuyer objects to other parts of the program as RandomBase objects. \\
+
+The LEcuyer generator instantiates two multiple-recursive generator objects and samples one random integer from each of these. It uses these integers to generate a uniform random number as described in the L'Ecuyer generator algorithm.
+
+\subsection*{Park Miller - Uniform Random Numbers}
+I used the RandomParkMiller generator class provided by Joshi to generate uniform random numbers by this method.
+
+\subsection*{Inverse Transform Method for Gaussians}
+In order to adhere to object-oriented methodology I created a class that implements the InverseTransform generator. This class inherits from the RandomBase class which allows it to be used within the existing framework of the code.
+
+\subsection*{Box-Muller Method for Gaussians}
+The BoxMuller generator class inherits from the RandomBase class allowing it to fit into the existing framework.  This class implements the Box-Muller method of generating normal random variables as described in the class notes.  I have used the Marsaglia-Bray optimization.
+
+\subsection*{Fishman Method for Gaussians}
+The Fishman generator class inherits from the RandomBase class allowing it to fit into the existing framework.  This class implements the Fishman method of generating normal random variables as described in the class notes.
+
+\section*{Results}
+Prices obtained using the default generator (RandomRand)
+\begin{verbatim}
+Closed-form option price = 10.0201
+MC option price with Park-Miller uniform generator = 10.2803
+MC option price with L'Ecuyer uniform generator = 9.7198
+MC option price with inverse distribution normal generator = 10.2802
+MC option price with Box-Muller normal generator = 10.1373
+MC option price with Fishman normal generator = 10.4038
+\end{verbatim} 
+
+
+\noindent
+Prices obtained by using Park-Miller as the engine for the methods for obtaining gaussian randoms.
+\begin{verbatim}
+Closed-form option price = 10.0201
+MC option price with Park-Miller uniform generator = 10.2803
+MC option price with L'Ecuyer uniform generator = 9.7198
+MC option price with inverse distribution normal generator = 10.2803
+MC option price with Box-Muller normal generator = 10.1373
+MC option price with Fishman normal generator = 10.4038
+\end{verbatim}
+We observe that the option price obtained using the inverse-transform method is different in this method. \\
+
+
+\noindent
+Prices obtained by using L'Ecuyer as the engine for the methods for obtaining gaussian randoms.
+\begin{verbatim}
+Closed-form option price = 10.0201
+MC option price with Park-Miller uniform generator = 10.2803
+MC option price with L'Ecuyer uniform generator = 9.7198
+MC option price with inverse distribution normal generator = 9.7198
+MC option price with Box-Muller normal generator = 9.91423
+MC option price with Fishman normal generator = 10.0585
+\end{verbatim}
+We observe that the option prices are generally lower than those obtained by using Park-Miller as the engine for the uniforms. \\
+
+\section*{Comparison}
+Figure 1 shows the histogram of 1000 random numbers generated by using the Park-Miller uniforms.  The standard normal density curve (shown in red) is superimposed on each histogram. \\
+
+The random numbers generated by the Inverse Transform and the Box-Muller methods seem to better fit the normal distribution than those generated by the Fishman method.  We observe the the distribution of the Fishman random numbers is flatter than the distribution of the Inverse Transform and the Box-Muller random variables. \\
+
+\begin{figure}[htbp]
+\begin{center}
+\includegraphics{"/Users/nitish/MSMF/CompFin/DesignCPP/HW3_KANABARN/parkmiller"}
+\caption{{\bf Park-Miller Uniforms}}
+\label{Figure_1}
+\end{center}
+\end{figure}
+
+
+Figure 2 shows the histogram of 1000 random numbers generated by using the L'Ecuyer uniforms.  The standard normal density curve (shown in red) is superimposed on each histogram. \\
+
+We observe that the random numbers generated by each method fit the standard gaussian distribution equally well.
+
+\begin{figure}[htbp]
+\begin{center}
+\includegraphics{"/Users/nitish/MSMF/CompFin/DesignCPP/HW3_KANABARN/lecuyer"}
+\caption{{\bf L'Ecuyer Uniforms}}
+\label{Figure_2}
+\end{center}
+\end{figure}
+
+\clearpage
+
+\end{document}

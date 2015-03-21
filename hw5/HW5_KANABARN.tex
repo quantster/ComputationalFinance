@@ -1,0 +1,138 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%------------------------------------------------------------
+%
+\documentclass[letterpaper,twoside,11pt,fleqn]{article}
+%Options -- Point size:  10pt (default), 11pt, 12pt
+%        -- Paper size:  letterpaper (default), a4paper, a5paper, b5paper
+%                        legalpaper, executivepaper
+%        -- Orientation  (portrait is the default)
+%                        landscape
+%        -- Print size:  oneside (default), twoside
+%        -- Quality      final(default), draft
+%        -- Title page   notitlepage, titlepage(default)
+%        -- Columns      onecolumn(default), twocolumn
+%        -- Equation numbering (equation numbers on the right is the default)
+%                        leqno
+%        -- Displayed equations (centered is the default)
+%                        fleqn (equations start at the same distance from the right side)
+%        -- Open bibliography style (closed is the default)
+%                        openbib
+% For instance the command
+%           \documentclass[a4paper,12pt,leqno]{article}
+% ensures that the paper size is a4, the fonts are typeset at the size 12p
+% and the equation numbers are on the left side
+%
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{hyperref}
+
+\oddsidemargin=0.3in
+\evensidemargin=0.3in
+\textwidth=6.0in
+
+\begin{document}
+
+%% Title Page %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\title{Math 16:642:623 \\Computational Finance \\ Homework 5}
+\author{NITISH KANABAR \\ \texttt{nitish@eden.rutgers.edu}}
+%\date{}%
+
+\maketitle
+
+\thispagestyle{empty} 
+
+\clearpage
+\vfill
+\pagebreak
+
+%\cleardoublepage
+
+%\pagestyle{plain} 
+\setcounter{page}{1}
+
+%% Start Report %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+I developed and tested my code on Mac OS X using GCC Version 4.2.1.
+
+\section*{Algorithms}
+
+\subsubsection*{Sobol Sequence Generator}
+My Sobol sequence generator is based on code adapted from S. Joe and F. Y. Kuo which is located here: http://web.maths.unsw.edu.au/\textasciitilde{}fkuo/sobol/
+
+A Sobol sequence is a type of \( (t, d) \)-sequence in the class of low-discrepancy sequences.  The generator is implemented in the files Sobol.\{cpp.h\}.  The algorithm of generating Sobol sequences is as described in Notes on generating Sobol` sequences, \cite{joe_kuo}.  We begin with a set of primitive polynomials and direction numbers for dimensions 1 through 12 as defined by Joe and Kuo. The Sobol class encapsulates these numbers in the data-members {\em a} and {\em m}.  The Sobol class is limited to generating Sobol sequences upto dimension=12.  The Sobol constructor accepts two arguments - dimensionality and the dimension. The dimensionality indicates the total number of points that are required to be generated while the dimension refers to the number of points in each set. Hence the number of sets is dimensionality / dimension.   The GetUniforms method generates sequences of uniforms while the GetGaussian method converts these uniforms into a guassian sequence by the InverseTransform method.
+
+\subsubsection*{Park-Miller Generator}
+The Park-Miller generator is the standard Linear Congruential Generator using the following algorithm.
+\[
+x_{i+1} = a x_i mod m
+\]
+\[ x_0 = seed \]
+\[ m = 2^{31} - 1, a = 16807 \]
+\[
+u_{i+1} = \frac{x_{i+1}}{m}
+\]
+I have used the Park-Miller generator implemented by Mark Joshi.
+
+\subsubsection*{Stratified Generator}
+The stratified generator accepts a Park-Miller generator as its inner-generator.  A uniform from the inner generator is converted to the stratified sample using the following formula:
+\[
+V := a_{i-1} + (a_i - a_{i-1}U
+\]
+where U \textasciitilde{} Unif[0,1]  is a Park-Miller uniform.  The stratified normal random is obtained by converting the stratified uniform to the a guassian using the Inverse Transform method.
+
+\subsection*{Closed Form Formula}
+The following closed-form formula was used for geometric options:
+\[
+c = Se^{(b-r)(T-t)}N(d_1) - Ke^{-r(T-t)}N(d_2)
+\]
+Where N(x) is the cumulative normal distribution function of:
+\[
+d_1 = \frac{ln(\frac{S}{K}) + (b + \frac{\sigma_a^2}{2})T}{\sigma_a \sqrt{T}}
+\]
+\[
+d_2 = \frac{ln(\frac{S}{K}) + (b - \frac{\sigma_a^2}{2})T}{\sigma_a \sqrt{T}}
+\]
+\[
+\sigma_a = \frac{\sigma}{\sqrt{3}}
+\]
+\[
+b = \frac{1}{2}(r - d - \frac{\sigma^2}{6})
+\]
+
+
+\section*{Results}
+
+Result obtained from Kerry Back's spread-sheet for the geometric call is: 3.811381662
+
+Due to an upcoming mid-term I was unable to debug some issues with the Sobol and Stratified generators when used with path-dependent options. I have presented the results as implemented.
+
+\begin{verbatim}
+Closed-form vanilla call option = 10.0201
+MC vanilla call, Park-Miller uniforms, antithetics = 9.97437
+MC vanilla call, Park-Miller uniforms, stratified = 8.94626
+QMC vanilla call, Sobol sequence = 10.0047
+MC arithmetic Asian call, Park-Miller uniforms, antithetics = 23.1931
+MC asian call, Park-Miller uniforms, stratified = 22.0335
+QMC arithmetic asian call, Sobol sequence = 0
+Closed-form geometric asian call = 3.38709
+MC geometric asian call, Park-Miller uniforms, antithetics = nan
+MC geometric call, Park-Miller uniforms, stratified = nan
+QMC geometric asian call, Sobol sequence = 0
+\end{verbatim}
+
+
+\begin{thebibliography}{1}
+\bibitem{joe_kuo}
+	Stephen Joe and Frances Y. Kuo:
+	{\em Notes on generating Sobol' sequences}
+
+\bibitem{glasserman}
+	Glasserman, Paul:
+	{\em Monte Carlo Methods in Financial Engineering}
+
+\end{thebibliography}
+
+\end{document}

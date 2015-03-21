@@ -1,0 +1,174 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%------------------------------------------------------------
+%
+\documentclass[letterpaper,twoside,11pt,fleqn]{article}
+%Options -- Point size:  10pt (default), 11pt, 12pt
+%        -- Paper size:  letterpaper (default), a4paper, a5paper, b5paper
+%                        legalpaper, executivepaper
+%        -- Orientation  (portrait is the default)
+%                        landscape
+%        -- Print size:  oneside (default), twoside
+%        -- Quality      final(default), draft
+%        -- Title page   notitlepage, titlepage(default)
+%        -- Columns      onecolumn(default), twocolumn
+%        -- Equation numbering (equation numbers on the right is the default)
+%                        leqno
+%        -- Displayed equations (centered is the default)
+%                        fleqn (equations start at the same distance from the right side)
+%        -- Open bibliography style (closed is the default)
+%                        openbib
+% For instance the command
+%           \documentclass[a4paper,12pt,leqno]{article}
+% ensures that the paper size is a4, the fonts are typeset at the size 12p
+% and the equation numbers are on the left side
+%
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{graphicx}
+
+\oddsidemargin=0.3in
+\evensidemargin=0.3in
+\textwidth=5.8in
+
+\begin{document}
+
+%% Title Page %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\title{Math 16:642:623 \\Computational Finance \\ Homework 1}
+\author{NITISH KANABAR \\ \texttt{nitish@eden.rutgers.edu}}
+%\date{}%
+
+\maketitle
+
+\thispagestyle{empty} 
+
+\cleardoublepage
+
+\pagestyle{plain} 
+\setcounter{page}{1}
+
+%% Start Report %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section*{Building and Running the Homework}
+
+The file HW1\_KANABARN.zip contains my implementation and dependencies from Mark Joshi's implementation. My implementation contains the files MonteCarloSimulator.\{cpp,h\}, HW1Main.cpp, and the Makefile to build the code. The MonteCarloSimulator class implements the simulator and the different methods of option pricing as explained below. \\
+
+Unzip the submitted file. This will create a directory called HW1\_KANABARN which contains my code and the required files from Mark Joshi.  Change to that directory and run 'make' to build the homework.  This will build the executable 'hw1'.  Running 'hw1' will calculate the current price of an European-call option with strike K = 110 and maturity T = 1 year on an asset with initial price S(0) = 100, \(\sigma = 30\%\), dividend-yield =  2\%, and interest-rate = 5\% using each of the methods specified in the assignment.  \\
+
+I developed and tested my code on Mac OS X using the GCC Version 4.2.1.
+
+
+\section*{Algorithms}
+I used Mark Joshi's funciton GetOneGaussianByBoxMuller() in Random1.\{cpp.h\} to sample a standard normal random variable.  The paths were implemented using an inner loop and and outer loop as shown in the following pseudo-code
+\begin{verbatim}
+for each path
+    precompute values to optimize the simulation
+    for each step
+        compute the new spot price
+    end step
+    compute and store the option payoff using the ending spot price
+end path
+compute the average of the stored payoffs
+\end{verbatim}
+The pre-computation optimization technique involves simplifying the approximation and calculating values used in the approximation so that the number of arithmetic operations required per step are minimized.  This speeds up the simulation significantly over thousands of simulated paths.
+
+\subsection*{Closed-Form}
+I used Mark Joshi's option-pricing calculator implemented in the files BlackScholesFormulas.\{cpp.h\} to obtain the price of the put and call options.  The results match with those obtained from Kerry Back's spreadsheet.
+
+\subsection*{Single-Step Analytic Solution for the SDE}
+The analytic solution for the given SDE is
+\[
+	S(T) = S(0)e^{(r - d - \frac{\sigma^2}{2})t + \sigma \int_0^TdW(t)}
+\]
+
+We observe the analytic solution is identical to that of the Euler approximation for the log-spot with the time increment and the number of steps per path both = 1
+\[
+	\hat{S}(T) = S(0) e^{ ( (r - d - \frac{\sigma^2}{2})  + \sigma  Z_{T} ) }
+\]
+To obtain the analytic solution I set the time-increment to 1 and used the implementation of the Euler log-spot as described below.
+
+\subsection*{Euler Spot}
+The Euler scheme for approximating the spot-price is:
+\[
+	\hat{S}(t_{i+1}) = \hat{S}(t_i) + (r - d)\hat{S}(t_i)(t_{i+1} - t_i) + \sigma \hat{S}(t_i) \sqrt{(t_{i+1} - t_i)} Z_{i+1}
+\]
+We can optimize the simulation by pre-computing values used in the calculation prior to generating the random numbers as shown below.
+\[	pre_0 = 1 + (r - d) (t_{i+1} - t_i) \]
+\[	pre_1 = \sigma \sqrt{(t_{i+1} - t_i)} \]
+\[	\hat{S}(t_{i+1}) = \hat{S}(t_i)(pre_0 + pre_1 Z_{i+1} )  \]
+This approach reduces the number of arithmetic operations per step to 2 multiplications and 1 addition from 5 multiplications and 5 additions without pre-computation. This significantly speeds up the simulation over the course of 10,000 paths each with 252 steps.  I have used a similar optimization technique for each method.
+
+\subsection*{Euler LogSpot}
+The Euler scheme for approximating the log of the spot-price is:
+\[
+	\hat{S}(t_{i+1}) = \hat{S}(t_i) e^{ ( (r - d - \frac{\sigma^2}{2}) (t_{i+1} - t_i)  + \sigma  \sqrt{(t_{i+1} - t_i)} Z_{i+1} ) }
+\]
+The pre-computation optimization results in the following equations
+\[	pre_0 = (r - d - \frac{\sigma^2}{2}) (t_{i+1} - t_i)		\]
+\[	pre_1 = \sigma \sqrt{(t_{i+1} - t_i)}				\]
+\[	\hat{S}(t_{i+1}) = \hat{S}(t_i) e^{(pre_0 + pre_1 Z_{i+1} )	}\]
+This optimization reduces the number of arithmetic operations per step to 2 multiplications and 1 addition from 5 multiplications and 5 additions.
+
+\subsection*{Milstein}
+The Milstein scheme for approximating a stochastic process \(X(t) = a(X(t))dt + b(X(t))dW(t) \) is
+\[
+	\hat{X}(t_{i+1}) = \hat{X}(t_i) + a(\hat{X}(t_i))(t_{i+1} - t_i) 
+					+ b(\hat{X}(t_i)) \sqrt{(t_{i+1} - t_i)} Z_{i+1}
+					+ \frac{1}{2} b'(\hat{X}(t_i))  b(\hat{X}(t_i))   [Z^2_{i+1} - 1]
+\]
+Hence the approximation for the given stochastic process is
+\[
+	\hat{S}(t_{i+1}) = \hat{S}(t_i) + (r - d)\hat{S}(t_i)(t_{i+1} - t_i) + \sigma \hat{S}(t_i) \sqrt{(t_{i+1} - t_i)} Z_{i+1}
+	+ \frac{1}{2} \sigma^2 \hat{S}(t_i)(t_{i+1} - t_i)  [Z^2_{i+1} - 1]
+\]
+The pre-computation optimization results in the following equations
+\[	pre_0 = \frac{1}{2} \sigma^2 (t_{i+1} - t_i)	\]
+\[	pre_1 = 1 + (r - d) (t_{i+1} - t_i) - pre_0	\]
+\[	pre_2 = \sigma *  \sqrt{(t_{i+1} - t_i)}		\]
+\[	\hat{S}(t_{i+1}) = \hat{S}(t_i) \big(  pre_1 + Z_{i+1} (pre_2 + pre_0 Z_{i+1} ) \big) 	\]
+This optimization reduces the number of arithmetic operations per step to 3 multiplications and 2 additions from 13 multiplications and 8 additions.
+
+\section*{Results}
+The simulation resulted in the following values for the specified vanilla-call.
+\begin{verbatim}
+Option price using closed-form formula = 9.05705
+Option price using single-step exact SDE solution = 9.16408
+Option price using Euler numerical solution of SDE for spot = 9.17204
+Option price using Euler numerical solution of SDE for log spot = 9.16355
+Option price using Milstein numerical solution of SDE for spot = 9.22993
+\end{verbatim} 
+
+The price of the vanilla-call as obtained from Kerry Back's spread-sheet is \$9.057049. This value matches that obtained by using the closed-form formula. We observe that the prices obtained by simulation are generally greater than this value.  The simulated prices converge to the closed-form value as we increase the number of paths.  The results obtained for 50,000 and 100,000 simulations are shown below.
+
+\begin{verbatim}
+Number of paths = 50,000
+Option price using closed-form formula = 9.05705
+Option price using single-step exact SDE solution = 9.01028
+Option price using Euler numerical solution of SDE for spot = 9.1315
+Option price using Euler numerical solution of SDE for log spot = 9.0955
+Option price using Milstein numerical solution of SDE for spot = 9.14599
+\end{verbatim}
+
+\begin{verbatim}
+Number of paths = 100,000
+Option price using closed-form formula = 9.05705
+Option price using single-step exact SDE solution = 9.08909
+Option price using Euler numerical solution of SDE for spot = 9.14091
+Option price using Euler numerical solution of SDE for log spot = 9.06443
+Option price using Milstein numerical solution of SDE for spot = 9.096
+\end{verbatim}
+
+We observe that the Euler scheme for log-spot and the Milstein scheme converge faster than the single-step analytic solution and the Euler scheme for spot.
+
+\section*{Conclusion}
+The payoff \( (S(T) - K)^+ \) is that of a European call option and depends only on the value of the underlying asset at maturity - i.e the payoff is path-independent.   Since the payoff is path-independent it is not necessary to simulate the entire path to compute the option price, we can directly simulate the price of the underlying at option expiry for each path and then compute the option price. \\
+
+The continuously monitored European-style Asian call option, with payoff \((\bar{S}(T) - K)^+ \) where \(\bar{S}(T) = T^{-1}\int_0^T S(T) \), and the discretely monitored European-style Asian call option, with payoff,  \((\bar{S}(T) - K)^+ \) where \(\bar{S}(T) = m^{-1}\sum_{i=1}^m S(T) \),  are path-dependent options, and hence it is necessary to simulate the entire path, \( \{S(t) \}_{t \in [0, T]}  \), in order to compute the option price.
+
+
+\clearpage
+\vfill
+\pagebreak
+
+\end{document}
